@@ -1,27 +1,19 @@
-name: Train model in prod (PR comment)
+name: Train model in prod
 
 on:
-  issue_comment:
-    types: [created]
+  workflow_dispatch:
 
 permissions:
   contents: read
-  issues: write
-  pull-requests: write
 
 jobs:
   train-prod:
-    if: >-
-      github.event.issue.pull_request != null &&
-      contains(github.event.comment.body, '/train-prod')
     runs-on: ubuntu-latest
     environment: prod
 
     steps:
       - name: Check out repository
         uses: actions/checkout@v4
-        with:
-          ref: refs/pull/${{ github.event.issue.number }}/head
 
       - name: Sign in to Azure
         uses: azure/login@v2
@@ -105,30 +97,3 @@ jobs:
 
           echo "prod_accuracy=$ACC" >> "$GITHUB_OUTPUT"
           echo "prod_auc=$AUC" >> "$GITHUB_OUTPUT"
-
-      - name: Comment prod metrics on pull request
-        uses: actions/github-script@v7
-        with:
-          script: |
-            const acc = '${{ steps.parse-metrics.outputs.prod_accuracy }}';
-            const auc = '${{ steps.parse-metrics.outputs.prod_auc }}';
-            const jobName = '${{ steps.train.outputs.job_name }}';
-            const studioUrl = '${{ steps.download.outputs.studio_url }}';
-
-            const prNumber = context.issue.number;
-
-            let body = '✅ Prod training workflow completed.';
-            body += '\n\n**Azure ML job**';
-            body += `\n- Name: ${jobName}`;
-            if (studioUrl) body += `\n- Studio: ${studioUrl}`;
-
-            body += '\n\n**Prod evaluation metrics**';
-            body += `\n- Accuracy: ${acc}`;
-            body += `\n- AUC: ${auc}`;
-
-            await github.rest.issues.createComment({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              issue_number: prNumber,
-              body,
-            });
