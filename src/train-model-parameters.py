@@ -3,6 +3,8 @@ import glob
 import json
 import os
 import mlflow
+import mlflow.sklearn
+import joblib
 import pandas as pd
 import numpy as np
 from sklearn.model_selection import train_test_split
@@ -23,6 +25,15 @@ def main(args):
 
     # evaluate model
     metrics = eval_model(model, X_test, y_test)
+
+    # --- SAVE AND LOG MODEL ARTIFACTS ---
+    # 1. Log model directly to MLflow (enables "Register Model" in Azure ML UI)
+    mlflow.sklearn.log_model(model, "model")
+
+    # 2. Save physical model.pkl to the 'outputs' directory (appears in Outputs + logs)
+    os.makedirs('outputs', exist_ok=True)
+    joblib.dump(model, 'outputs/model.pkl')
+    print("Saved model to outputs/model.pkl")
 
     # persist metrics so the workflow can comment the actual values deterministically
     if args.metrics_output:
