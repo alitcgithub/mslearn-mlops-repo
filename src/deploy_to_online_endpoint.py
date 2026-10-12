@@ -1,6 +1,3 @@
-(No subject)
-Ali Tcharmtchi
-Ali Tcharmtchi
 import argparse
 import datetime
 from azure.ai.ml import MLClient
