@@ -1,7 +1,5 @@
-import argparse
-import datetime
+from azure.identity import DefaultAzureCredential
 from azure.ai.ml import MLClient
-from azure.ai.ml.constants import AssetTypes
 from azure.ai.ml.entities import (
     DataCollector,
     DeploymentCollection,
@@ -9,8 +7,11 @@ from azure.ai.ml.entities import (
     ManagedOnlineEndpoint,
     Model,
 )
+from azure.ai.ml.constants import AssetTypes
 from azure.core.exceptions import ResourceNotFoundError
-from azure.identity import DefaultAzureCredential
+
+import argparse
+import datetime
 
 
 def get_data_collector() -> DataCollector:
@@ -28,19 +29,13 @@ def parse_args():
     parser.add_argument("--subscription-id", dest="subscription_id", required=True)
     parser.add_argument("--resource-group", dest="resource_group", required=True)
     parser.add_argument("--workspace", dest="workspace", required=True)
-    parser.add_argument(
-        "--endpoint-name", dest="endpoint_name", default="diabetes-endpoint"
-    )
-    parser.add_argument(
-        "--deployment-name", dest="deployment_name", default="green"
-    )
+    parser.add_argument("--endpoint-name", dest="endpoint_name", default="diabetes-endpoint")
+    parser.add_argument("--deployment-name", dest="deployment_name", default="blue")
 
     return parser.parse_args()
 
 
-def get_ml_client(
-    subscription_id: str, resource_group: str, workspace: str
-) -> MLClient:
+def get_ml_client(subscription_id: str, resource_group: str, workspace: str) -> MLClient:
     credential = DefaultAzureCredential()
     return MLClient(
         credential=credential,
@@ -59,54 +54,39 @@ def ensure_endpoint(ml_client: MLClient, endpoint_name: str) -> ManagedOnlineEnd
             description="Online endpoint for MLflow diabetes model",
             auth_mode="key",
         )
-        return ml_client.online_endpoints.begin_create_or_update(
-            endpoint
-        ).result()
-
-
-def register_model(ml_client: MLClient, model_name: str = "diabetes-model") -> Model:
-    """Registers the model explicitly in the Azure ML Workspace Model Registry."""
-    print(f"Registering model asset '{model_name}' in workspace registry...")
-    version_str = datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
-
-    model_entity = Model(
-        name=model_name,
-        path="./model",
-        type=AssetTypes.MLFLOW_MODEL,
-        description="MLflow diabetes classification model",
-        version=version_str,
-    )
-
-    registered_model = ml_client.models.create_or_update(model_entity)
-    print(
-        f"Model registered successfully: {registered_model.name} (Version: {registered_model.version})"
-    )
-    return registered_model
+        return ml_client.online_endpoints.begin_create_or_update(endpoint).result()
 
 
 def create_or_update_deployment(
     ml_client: MLClient,
     endpoint_name: str,
     deployment_name: str,
-    model: Model,
 ) -> ManagedOnlineDeployment:
+    model_name = "diabetes-model"
+    
+    print(f"Explicitly registering model '{model_name}' to workspace registry...")
+    model_definition = Model(
+        name=model_name,
+        path="./model",
+        type=AssetTypes.MLFLOW_MODEL,
+        description="MLflow diabetes classification model",
+    )
+    registered_model = ml_client.models.create_or_update(model_definition)
+    print(f"Successfully registered model: {registered_model.name} (Version: {registered_model.version})")
+
     deployment = ManagedOnlineDeployment(
         name=deployment_name,
         endpoint_name=endpoint_name,
-        model=model,
+        model=registered_model,
         instance_type="Standard_D2as_v4",
         instance_count=1,
         data_collector=get_data_collector(),
     )
 
-    return ml_client.online_deployments.begin_create_or_update(
-        deployment
-    ).result()
+    return ml_client.online_deployments.begin_create_or_update(deployment).result()
 
 
-def set_traffic_to_deployment(
-    ml_client: MLClient, endpoint_name: str, deployment_name: str
-) -> None:
+def set_traffic_to_deployment(ml_client: MLClient, endpoint_name: str, deployment_name: str) -> None:
     endpoint = ml_client.online_endpoints.get(name=endpoint_name)
     endpoint.traffic = {deployment_name: 100}
     ml_client.online_endpoints.begin_create_or_update(endpoint).result()
@@ -126,15 +106,11 @@ def main() -> None:
     endpoint = ensure_endpoint(ml_client, args.endpoint_name)
     print(f"Using endpoint: {endpoint.name}")
 
-    # Register model explicitly before creating/updating deployment
-    registered_model = register_model(ml_client, model_name="diabetes-model")
-
     print(f"Creating or updating deployment '{args.deployment_name}'...")
     deployment = create_or_update_deployment(
         ml_client=ml_client,
         endpoint_name=endpoint.name,
         deployment_name=args.deployment_name,
-        model=registered_model,
     )
     print(f"Deployment state: {deployment.provisioning_state}")
 
