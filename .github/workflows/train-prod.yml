@@ -65,9 +65,9 @@ jobs:
 
           echo "job_name=$JOB_NAME" >> "$GITHUB_OUTPUT"
 
-      - name: Stream prod training job
-        run: |
-          az ml job stream --name "${{ steps.train.outputs.job_name }}"
+      #- name: Stream prod training job
+      #  run: |
+      #    az ml job stream --name "${{ steps.train.outputs.job_name }}"
 
       - name: Download prod training outputs
         id: download
