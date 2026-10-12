@@ -60,8 +60,8 @@ jobs:
         run: |
           echo "S T A R T I N G    D E P L O Y M E N T    T O    T A R G E T"
           python src/deploy_to_online_endpoint.py \
-            --subscription_id "${{ steps.detect.outputs.subscription_id }}" \
-            --resource_group "${{ steps.detect.outputs.resource_group }}" \
-            --workspace_name "${{ steps.detect.outputs.workspace }}" \
-            --endpoint_name "${{ steps.detect.outputs.endpoint_name }}" \
-            --deployment_name "blue"
+            --subscription-id "${{ steps.detect.outputs.subscription_id }}" \
+            --resource-group "${{ steps.detect.outputs.resource_group }}" \
+            --workspace "${{ steps.detect.outputs.workspace }}" \
+            --endpoint-name "${{ steps.detect.outputs.endpoint_name }}" \
+            --deployment-name "blue"
