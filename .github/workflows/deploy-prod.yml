@@ -64,4 +64,4 @@ jobs:
             --resource-group "${{ steps.detect.outputs.resource_group }}" \
             --workspace "${{ steps.detect.outputs.workspace }}" \
             --endpoint-name "${{ steps.detect.outputs.endpoint_name }}" \
-            --deployment-name "blue"
+            --deployment-name "green"
