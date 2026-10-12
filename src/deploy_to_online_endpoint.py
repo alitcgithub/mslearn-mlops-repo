@@ -62,16 +62,22 @@ def create_or_update_deployment(
     endpoint_name: str,
     deployment_name: str,
 ) -> ManagedOnlineDeployment:
-    model = Model(
+    model_name = "diabetes-model"
+    
+    print(f"Explicitly registering model '{model_name}' to workspace registry...")
+    model_definition = Model(
+        name=model_name,
         path="./model",
         type=AssetTypes.MLFLOW_MODEL,
         description="MLflow diabetes classification model",
     )
+    registered_model = ml_client.models.create_or_update(model_definition)
+    print(f"Successfully registered model: {registered_model.name} (Version: {registered_model.version})")
 
     deployment = ManagedOnlineDeployment(
         name=deployment_name,
         endpoint_name=endpoint_name,
-        model=model,
+        model=registered_model,
         instance_type="Standard_D2as_v4",
         instance_count=1,
         data_collector=get_data_collector(),
