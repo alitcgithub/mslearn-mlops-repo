@@ -135,7 +135,7 @@ if __name__ == "__main__":
     print("\n\n")
     print("*" * 60)
 
-    # parse args
+    # parse args.
     args = parse_args()
 
     # run main function
